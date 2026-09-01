@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123A33">
+<title>Dziennik ciśnienia</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --tlo:#e9eeec;
+  --karta:#ffffff;
+  --atrament:#12241f;
+  --przygaszony:#5d6f6a;
+  --linia:#d3dcd9;
+  --zielen:#2f6f62;
+  --zielen-ciemna:#123a33;
+  --bursztyn:#b3862a;
+  --czerwien:#9c2f3c;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--tlo);
+  color:var(--atrament);
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px;line-height:1.45;
+  padding:0 14px calc(28px + env(safe-area-inset-bottom));
+  max-width:620px;margin:0 auto;
+}
+h1{font-size:1.05rem;font-weight:600;letter-spacing:.01em;margin:0}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:18px 2px 12px}
+header span{font-size:.82rem;color:var(--przygaszony)}
+.karta{background:var(--karta);border-radius:var(--r);padding:16px;margin-bottom:14px;border:1px solid var(--linia)}
+
+/* --- stan bieżący --- */
+.stan{background:var(--zielen-ciemna);color:#eef4f2;border:none;padding:20px 18px}
+.stan .odczyt{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.stan .liczby{font-size:3rem;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stan .jedn{font-size:.85rem;opacity:.7;padding-bottom:.4rem}
+.stan .kiedy{font-size:.85rem;opacity:.75;margin-top:8px}
+.plakietka{display:inline-block;margin-top:12px;padding:5px 11px;border-radius:999px;font-size:.82rem;font-weight:600;color:#fff}
+.srednie{display:flex;gap:22px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);flex-wrap:wrap}
+.srednie div{font-size:.82rem;opacity:.8}
+.srednie b{display:block;font-size:1.25rem;font-weight:600;opacity:1;font-variant-numeric:tabular-nums;margin-top:2px}
+
+/* --- formularz --- */
+label{display:block;font-size:.8rem;color:var(--przygaszony);margin-bottom:5px}
+.rzad{display:flex;gap:10px;margin-bottom:12px}
+.rzad>div{flex:1;min-width:0}
+input,select,textarea{
+  width:100%;font:inherit;color:var(--atrament);background:#f6f8f7;
+  border:1px solid var(--linia);border-radius:10px;padding:11px 12px;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--zielen);outline-offset:1px;background:#fff}
+input[type=number]{font-variant-numeric:tabular-nums}
+.pory{display:flex;gap:8px}
+.pory button{
+  flex:1;padding:11px 4px;border-radius:10px;border:1px solid var(--linia);
+  background:#f6f8f7;font:inherit;font-size:.9rem;color:var(--przygaszony);cursor:pointer
+}
+.pory button[aria-pressed=true]{background:var(--zielen);border-color:var(--zielen);color:#fff;font-weight:600}
+.zapisz{
+  width:100%;margin-top:4px;padding:14px;border:none;border-radius:10px;
+  background:var(--zielen-ciemna);color:#fff;font:inherit;font-weight:600;cursor:pointer
+}
+.zapisz:active{transform:translateY(1px)}
+.blad{color:var(--czerwien);font-size:.85rem;margin-top:10px;min-height:1.2em}
+
+/* --- wykres --- */
+.naglowek-sekcji{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.naglowek-sekcji h2{font-size:.95rem;font-weight:600;margin:0}
+.naglowek-sekcji small{color:var(--przygaszony);font-size:.8rem}
+svg{width:100%;height:auto;display:block}
+.legenda{display:flex;gap:16px;margin-top:10px;font-size:.78rem;color:var(--przygaszony)}
+.legenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+
+/* --- lista --- */
+.dzien{font-size:.8rem;color:var(--przygaszony);margin:18px 0 8px;padding-left:2px}
+.wpis{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linia)}
+.wpis:last-child{border-bottom:none}
+.pasek{width:4px;align-self:stretch;border-radius:2px;flex:none}
+.wpis .wartosc{font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;min-width:104px}
+.wpis .meta{flex:1;font-size:.82rem;color:var(--przygaszony);min-width:0}
+.wpis .meta em{font-style:normal;display:block;color:var(--atrament);opacity:.75;word-break:break-word}
+.usun{background:none;border:none;color:var(--przygaszony);font-size:1.1rem;padding:6px 4px;cursor:pointer;flex:none}
+.pusto{color:var(--przygaszony);font-size:.9rem;text-align:center;padding:24px 8px}
+.narzedzia{display:flex;gap:10px}
+.narzedzia button{
+  flex:1;padding:12px;border-radius:10px;border:1px solid var(--linia);
+  background:var(--karta);font:inherit;font-size:.88rem;color:var(--atrament);cursor:pointer
+}
+footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 10px 0;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Dziennik ciśnienia</h1>
+  <span id="licznik"></span>
+</header>
+
+<section class="karta stan" id="stan"></section>
+
+<section class="karta">
+  <div class="rzad">
+    <div>
+      <label for="data">Data</label>
+      <input type="date" id="data">
+    </div>
+    <div>
+      <label for="godzina">Godzina</label>
+      <input type="time" id="godzina">
+    </div>
+  </div>
+
+  <div class="rzad">
+    <div>
+      <label for="skurczowe">Górne (skurczowe)</label>
+      <input type="number" id="skurczowe" inputmode="numeric" min="50" max="300" placeholder="120">
+    </div>
+    <div>
+      <label for="rozkurczowe">Dolne (rozkurczowe)</label>
+      <input type="number" id="rozkurczowe" inputmode="numeric" min="30" max="200" placeholder="80">
+    </div>
+    <div>
+      <label for="tetno">Tętno</label>
+      <input type="number" id="tetno" inputmode="numeric" min="20" max="250" placeholder="—">
+    </div>
+  </div>
+
+  <label>Pora pomiaru</label>
+  <div class="pory" id="pory" style="margin-bottom:12px">
+    <button type="button" data-pora="rano" aria-pressed="true">Rano</button>
+    <button type="button" data-pora="wieczór" aria-pressed="false">Wieczór</button>
+    <button type="button" data-pora="dodatkowy" aria-pressed="false">Dodatkowy</button>
+  </div>
+
+  <label for="notatka">Notatka (opcjonalnie)</label>
+  <input type="text" id="notatka" placeholder="np. po kawie, przed lekami">
+
+  <div class="blad" id="blad"></div>
+  <button class="zapisz" id="zapisz">Zapisz pomiar</button>
+</section>
+
+<section class="karta" id="karta-wykresu">
+  <div class="naglowek-sekcji">
+    <h2>Przebieg</h2>
+    <small id="zakres-wykresu"></small>
+  </div>
+  <div id="wykres"></div>
+  <div class="legenda">
+    <span><i style="background:#123a33"></i>górne</span>
+    <span><i style="background:#7fae9f"></i>dolne</span>
+  </div>
+</section>
+
+<section class="karta">
+  <div class="naglowek-sekcji">
+    <h2>Historia</h2>
+    <small id="podsumowanie-historii"></small>
+  </div>
+  <div id="lista"></div>
+</section>
+
+<div class="narzedzia">
+  <button id="eksport">Eksportuj CSV</button>
+  <button id="import">Wczytaj CSV</button>
+</div>
+<input type="file" id="plik" accept=".csv,text/csv" hidden>
+
+<footer>
+  Dane zapisują się tylko w pamięci tej przeglądarki. Rób kopię przez eksport CSV.<br>
+  Aplikacja pomaga notować pomiary — nie służy do oceny stanu zdrowia.
+</footer>
+
+<script>
+const KLUCZ = 'pomiary-cisnienia-v1';
+let pomiary = [];
+let pora = 'rano';
+
+/* ---------- dane ---------- */
+function wczytaj(){
+  try{ pomiary = JSON.parse(localStorage.getItem(KLUCZ) || '[]'); }
+  catch(e){ pomiary = []; }
+  pomiary.sort((a,b)=> (b.data+b.godzina).localeCompare(a.data+a.godzina));
+}
+function zapisz(){ localStorage.setItem(KLUCZ, JSON.stringify(pomiary)); }
+
+/* ---------- klasyfikacja (wg wyższej z dwóch wartości) ---------- */
+const KATEGORIE = [
+  {nazwa:'niskie',              max:[89,59],   kolor:'#4b7fa8'},
+  {nazwa:'optymalne',           max:[119,79],  kolor:'#2f6f62'},
+  {nazwa:'prawidłowe',          max:[129,84],  kolor:'#5a8f52'},
+  {nazwa:'wysokie prawidłowe',  max:[139,89],  kolor:'#b3862a'},
+  {nazwa:'nadciśnienie 1°',     max:[159,99],  kolor:'#c46a2c'},
+  {nazwa:'nadciśnienie 2°',     max:[179,109], kolor:'#9c2f3c'},
+  {nazwa:'nadciśnienie 3°',     max:[999,999], kolor:'#6d1f2a'}
+];
+function kategoria(s,r){
+  if(s<90 && r<60) return KATEGORIE[0];
+  for(let i=1;i<KATEGORIE.length;i++){
+    if(s<=KATEGORIE[i].max[0] && r<=KATEGORIE[i].max[1]) return KATEGORIE[i];
+  }
+  return KATEGORIE[KATEGORIE.length-1];
+}
+
+/* ---------- pomocnicze ---------- */
+const dni = ['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'];
+const miesiace = ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
+function opisDaty(iso){
+  const d = new Date(iso+'T12:00:00');
+  const dzis = new Date(); dzis.setHours(12,0,0,0);
+  const roznica = Math.round((dzis-d)/86400000);
+  if(roznica===0) return 'Dzisiaj';
+  if(roznica===1) return 'Wczoraj';
+  return dni[d.getDay()] + ', ' + d.getDate() + ' ' + miesiace[d.getMonth()];
+}
+function dwacyfry(n){ return String(n).padStart(2,'0'); }
+
+/* ---------- widok: stan bieżący ---------- */
+function rysujStan(){
+  const el = document.getElementById('stan');
+  document.getElementById('licznik').textContent =
+    pomiary.length ? pomiary.length + (pomiary.length===1?' pomiar':(pomiary.length<5?' pomiary':' pomiarów')) : '';
+
+  if(!pomiary.length){
+    el.innerHTML = '<div class="kiedy" style="margin:0">Brak pomiarów. Wpisz pierwszy wynik poniżej — data i godzina są już ustawione na teraz.</div>';
+    return;
+  }
+  const p = pomiary[0];
+  const k = kategoria(p.skurczowe, p.rozkurczowe);
+
+  const granica = Date.now() - 7*86400000;
+  const ostatnie = pomiary.filter(x => new Date(x.data+'T'+x.godzina).getTime() >= granica);
+  const sr = t => ostatnie.length ? Math.round(ostatnie.reduce((a,x)=>a+x[t],0)/ostatnie.length) : '—';
+  const tetna = ostatnie.filter(x=>x.tetno);
+  const srTetno = tetna.length ? Math.round(tetna.reduce((a,x)=>a+x.tetno,0)/tetna.length) : '—';
+
+  el.innerHTML =
+    '<div class="odczyt"><span class="liczby">'+p.skurczowe+'/'+p.rozkurczowe+'</span>'+
+    '<span class="jedn">mmHg'+(p.tetno?' · tętno '+p.tetno:'')+'</span></div>'+
+    '<div class="kiedy">'+opisDaty(p.data)+', '+p.godzina+' · '+p.pora+'</div>'+
+    '<span class="plakietka" style="background:'+k.kolor+'">'+k.nazwa+'</span>'+
+    '<div class="srednie">'+
+      '<div>Średnia z 7 dni<b>'+sr('skurczowe')+'/'+sr('rozkurczowe')+'</b></div>'+
+      '<div>Średnie tętno<b>'+srTetno+'</b></div>'+
+      '<div>Pomiarów w 7 dni<b>'+ostatnie.length+'</b></div>'+
+    '</div>';
+}
+
+/* ---------- widok: wykres ---------- */
+function rysujWykres(){
+  const karta = document.getElementById('karta-wykresu');
+  const dane = pomiary.slice(0, 30).reverse();
+  if(dane.length < 2){ karta.style.display='none'; return; }
+  karta.style.display='';
+
+  document.getElementById('zakres-wykresu').textContent =
+    'ostatnie ' + dane.length + ' pomiarów';
+
+  const W=600, H=220, ml=34, mr=8, mt=12, mb=22;
+  const wszystkie = dane.flatMap(p=>[p.skurczowe,p.rozkurczowe]);
+  let min = Math.min(...wszystkie, 70), max = Math.max(...wszystkie, 140);
+  min = Math.floor((min-8)/10)*10; max = Math.ceil((max+8)/10)*10;
+  const x = i => ml + i*(W-ml-mr)/(dane.length-1);
+  const y = v => mt + (max-v)*(H-mt-mb)/(max-min);
+
+  let siatka='';
+  for(let v=min; v<=max; v+=20){
+    siatka += '<line x1="'+ml+'" y1="'+y(v)+'" x2="'+(W-mr)+'" y2="'+y(v)+'" stroke="#e2e9e7" stroke-width="1"/>'+
+              '<text x="4" y="'+(y(v)+4)+'" font-size="11" fill="#5d6f6a">'+v+'</text>';
+  }
+  // strefy odniesienia 120 i 80
+  const linia = (v,kolor)=> (v>=min&&v<=max) ?
+    '<line x1="'+ml+'" y1="'+y(v)+'" x2="'+(W-mr)+'" y2="'+y(v)+'" stroke="'+kolor+'" stroke-width="1" stroke-dasharray="4 4" opacity=".55"/>' : '';
+
+  const sciezka = (pole) => dane.map((p,i)=> (i?'L':'M')+x(i).toFixed(1)+' '+y(p[pole]).toFixed(1)).join(' ');
+  const punkty = (pole,kolor) => dane.map((p,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(p[pole]).toFixed(1)+'" r="2.6" fill="'+kolor+'"/>').join('');
+
+  const pierwszy = dane[0], ostatni = dane[dane.length-1];
+  const etykieta = p => p.data.slice(8,10)+'.'+p.data.slice(5,7);
+
+  document.getElementById('wykres').innerHTML =
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Wykres ciśnienia w czasie">'+
+      siatka + linia(120,'#2f6f62') + linia(80,'#7fae9f') +
+      '<path d="'+sciezka('skurczowe')+'" fill="none" stroke="#123a33" stroke-width="2.2" stroke-linejoin="round"/>'+
+      '<path d="'+sciezka('rozkurczowe')+'" fill="none" stroke="#7fae9f" stroke-width="2.2" stroke-linejoin="round"/>'+
+      punkty('skurczowe','#123a33') + punkty('rozkurczowe','#7fae9f')+
+      '<text x="'+ml+'" y="'+(H-6)+'" font-size="11" fill="#5d6f6a">'+etykieta(pierwszy)+'</text>'+
+      '<text x="'+(W-mr)+'" y="'+(H-6)+'" font-size="11" fill="#5d6f6a" text-anchor="end">'+etykieta(ostatni)+'</text>'+
+    '</svg>';
+}
+
+/* ---------- widok: lista ---------- */
+function rysujListe(){
+  const lista = document.getElementById('lista');
+  if(!pomiary.length){
+    lista.innerHTML = '<div class="pusto">Tu pojawią się zapisane pomiary, pogrupowane po dniach.</div>';
+    document.getElementById('podsumowanie-historii').textContent='';
+    return;
+  }
+  const dni = [...new Set(pomiary.map(p=>p.data))].length;
+  document.getElementById('podsumowanie-historii').textContent = dni + (dni===1?' dzień':' dni');
+
+  let html='', ostatniDzien='';
+  pomiary.forEach(p=>{
+    if(p.data!==ostatniDzien){
+      html += '<div class="dzien">'+opisDaty(p.data)+'</div>';
+      ostatniDzien = p.data;
+    }
+    const k = kategoria(p.skurczowe,p.rozkurczowe);
+    html += '<div class="wpis">'+
+      '<span class="pasek" style="background:'+k.kolor+'"></span>'+
+      '<span class="wartosc">'+p.skurczowe+'/'+p.rozkurczowe+'</span>'+
+      '<span class="meta">'+p.godzina+' · '+p.pora+(p.tetno?' · '+p.tetno+' ud/min':'')+
+        (p.notatka?'<em>'+p.notatka.replace(/</g,'&lt;')+'</em>':'')+'</span>'+
+      '<button class="usun" data-id="'+p.id+'" aria-label="Usuń pomiar">×</button>'+
+    '</div>';
+  });
+  lista.innerHTML = html;
+}
+
+function odswiez(){ rysujStan(); rysujWykres(); rysujListe(); }
+
+/* ---------- zapisywanie ---------- */
+function terazDoPol(){
+  const t = new Date();
+  document.getElementById('data').value = t.getFullYear()+'-'+dwacyfry(t.getMonth()+1)+'-'+dwacyfry(t.getDate());
+  document.getElementById('godzina').value = dwacyfry(t.getHours())+':'+dwacyfry(t.getMinutes());
+  ustawPore(t.getHours() < 14 ? 'rano' : 'wieczór');
+}
+function ustawPore(nowa){
+  pora = nowa;
+  document.querySelectorAll('#pory button').forEach(b=>
+    b.setAttribute('aria-pressed', String(b.dataset.pora===nowa)));
+}
+document.getElementById('pory').addEventListener('click', e=>{
+  if(e.target.dataset.pora) ustawPore(e.target.dataset.pora);
+});
+
+document.getElementById('zapisz').addEventListener('click', ()=>{
+  const blad = document.getElementById('blad');
+  const data = document.getElementById('data').value;
+  const godzina = document.getElementById('godzina').value;
+  const s = parseInt(document.getElementById('skurczowe').value,10);
+  const r = parseInt(document.getElementById('rozkurczowe').value,10);
+  const t = parseInt(document.getElementById('tetno').value,10);
+
+  if(!data || !godzina){ blad.textContent='Uzupełnij datę i godzinę.'; return; }
+  if(!(s>=50 && s<=300)){ blad.textContent='Górne ciśnienie: wpisz wartość od 50 do 300.'; return; }
+  if(!(r>=30 && r<=200)){ blad.textContent='Dolne ciśnienie: wpisz wartość od 30 do 200.'; return; }
+  if(r>=s){ blad.textContent='Dolna wartość musi być mniejsza od górnej — sprawdź, czy pola się nie zamieniły.'; return; }
+  blad.textContent='';
+
+  pomiary.push({
+    id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+    data, godzina, skurczowe:s, rozkurczowe:r,
+    tetno: (t>=20 && t<=250) ? t : null,
+    pora,
+    notatka: document.getElementById('notatka').value.trim()
+  });
+  pomiary.sort((a,b)=> (b.data+b.godzina).localeCompare(a.data+a.godzina));
+  zapisz(); odswiez();
+
+  ['skurczowe','rozkurczowe','tetno','notatka'].forEach(i=>document.getElementById(i).value='');
+  terazDoPol();
+  document.getElementById('skurczowe').focus();
+});
+
+document.getElementById('lista').addEventListener('click', e=>{
+  const id = e.target.dataset.id;
+  if(!id) return;
+  const p = pomiary.find(x=>x.id===id);
+  if(confirm('Usunąć pomiar '+p.skurczowe+'/'+p.rozkurczowe+' z '+p.data+' '+p.godzina+'?')){
+    pomiary = pomiary.filter(x=>x.id!==id);
+    zapisz(); odswiez();
+  }
+});
+
+/* ---------- CSV ---------- */
+document.getElementById('eksport').addEventListener('click', ()=>{
+  if(!pomiary.length){ alert('Nie ma jeszcze żadnych pomiarów do wyeksportowania.'); return; }
+  const wiersze = [['data','godzina','skurczowe','rozkurczowe','tetno','pora','notatka']];
+  [...pomiary].reverse().forEach(p=>wiersze.push([
+    p.data,p.godzina,p.skurczowe,p.rozkurczowe,p.tetno||'',p.pora,(p.notatka||'').replace(/"/g,'""')
+  ]));
+  const csv = '\uFEFF' + wiersze.map(w=>w.map(c=>'"'+c+'"').join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'cisnienie-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('import').addEventListener('click', ()=>document.getElementById('plik').click());
+document.getElementById('plik').addEventListener('change', e=>{
+  const plik = e.target.files[0]; if(!plik) return;
+  const czyt = new FileReader();
+  czyt.onload = () => {
+    const linie = czyt.result.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+    let dodane = 0;
+    linie.slice(1).forEach(l=>{
+      const p = l.split(';').map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"'));
+      const s = parseInt(p[2],10), r = parseInt(p[3],10);
+      if(!p[0] || isNaN(s) || isNaN(r)) return;
+      if(pomiary.some(x=>x.data===p[0] && x.godzina===p[1] && x.skurczowe===s)) return;
+      pomiary.push({
+        id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+        data:p[0], godzina:p[1]||'12:00', skurczowe:s, rozkurczowe:r,
+        tetno: parseInt(p[4],10) || null, pora: p[5]||'dodatkowy', notatka: p[6]||''
+      });
+      dodane++;
+    });
+    pomiary.sort((a,b)=> (b.data+b.godzina).localeCompare(a.data+a.godzina));
+    zapisz(); odswiez();
+    alert(dodane ? 'Wczytano '+dodane+' pomiarów.' : 'Nie znaleziono nowych pomiarów w tym pliku.');
+  };
+  czyt.readAsText(plik);
+  e.target.value='';
+});
+
+/* ---------- start ---------- */
+wczytaj(); terazDoPol(); odswiez();
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

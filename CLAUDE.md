@@ -47,7 +47,8 @@ posortowana malejąco po `data + godzina`:
 
 Brak backendu i brak synchronizacji — dane nie opuszczają przeglądarki. Jedyna kopia
 zapasowa to eksport CSV (średnik jako separator, BOM na początku, żeby Excel nie rozwalił
-polskich znaków). Import pomija duplikaty po trójce `data + godzina + skurczowe`.
+polskich znaków). Import pomija duplikaty, czyli wpisy z identycznymi `data + godzina + skurczowe +
+rozkurczowe + tetno` (dwa różne pomiary w tej samej minucie są zachowywane).
 
 ## Kluczowe elementy logiki w `index.html`
 

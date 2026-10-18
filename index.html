@@ -467,12 +467,14 @@ document.getElementById('plik').addEventListener('change', e=>{
       const s = parseInt(p[2],10), r = parseInt(p[3],10);
       const data = (p[0]||'').trim(), godzina = (p[1]||'').trim() || '12:00';
       if(!data || isNaN(s) || isNaN(r)) return;
-      if(pomiary.some(x=>x.data===data && x.godzina===godzina && x.skurczowe===s)) return;
+      const tetno = parseInt(p[4],10) || null;
+      if(pomiary.some(x=>x.data===data && x.godzina===godzina && x.skurczowe===s &&
+                         x.rozkurczowe===r && x.tetno===tetno)) return;
       const pr = (p[5]||'').trim();
       pomiary.push({
         id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
         data, godzina, skurczowe:s, rozkurczowe:r,
-        tetno: parseInt(p[4],10) || null,
+        tetno,
         pora: PORY.includes(pr) ? pr : 'dodatkowy',
         notatka: p[6]||''
       });

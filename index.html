@@ -41,6 +41,17 @@ header span{font-size:.82rem;color:var(--przygaszony)}
 .stan .jedn{font-size:.85rem;opacity:.7;padding-bottom:.4rem}
 .stan .kiedy{font-size:.85rem;opacity:.75;margin-top:8px}
 .plakietka{display:inline-block;margin-top:12px;padding:5px 11px;border-radius:999px;font-size:.82rem;font-weight:600;color:#fff}
+.dzis-tytul{font-size:.78rem;opacity:.7;margin-top:16px;margin-bottom:6px}
+.dzis{display:flex;gap:8px}
+.dzis>*{
+  flex:1;min-width:0;text-align:left;font:inherit;font-size:.78rem;color:inherit;
+  padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.08);
+  border:none;border-left:4px solid transparent
+}
+.dzis b{display:block;font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0 1px}
+.dzis small{display:block;font-size:.72rem;opacity:.7}
+.dzis .brak{background:none;border:1px dashed rgba(255,255,255,.35);cursor:pointer;opacity:.85}
+.dzis .brak b{font-weight:500;opacity:.8}
 .srednie{display:flex;gap:22px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);flex-wrap:wrap}
 .srednie div{font-size:.82rem;opacity:.8}
 .srednie b{display:block;font-size:1.25rem;font-weight:600;opacity:1;font-variant-numeric:tabular-nums;margin-top:2px}
@@ -177,6 +188,7 @@ footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 1
 
 <script>
 const KLUCZ = 'pomiary-cisnienia-v1';
+const PORY = ['rano','wieczór','dodatkowy'];
 let pomiary = [];
 let pora = 'rano';
 
@@ -218,12 +230,31 @@ function opisDaty(iso){
   return dni[d.getDay()] + ', ' + d.getDate() + ' ' + miesiace[d.getMonth()];
 }
 function dwacyfry(n){ return String(n).padStart(2,'0'); }
+function ilePomiarow(n){
+  const j = n%10, d = n%100;
+  return n + (n===1 ? ' pomiar' : (j>=2 && j<=4 && (d<12 || d>14)) ? ' pomiary' : ' pomiarów');
+}
+function isoDaty(t){ return t.getFullYear()+'-'+dwacyfry(t.getMonth()+1)+'-'+dwacyfry(t.getDate()); }
+
+/* ---------- widok: dzisiejszy rytm (rano / wieczór / dodatkowe) ---------- */
+function htmlDzis(){
+  const dzisiaj = pomiary.filter(x=>x.data===isoDaty(new Date()));
+  const kafel = (nazwa, klucz) => {
+    const p = dzisiaj.find(x=>x.pora===klucz); // lista jest malejąca, więc to najnowszy
+    if(!p) return '<button type="button" class="brak" data-pora="'+klucz+'">'+nazwa+'<b>brak</b><small>dotknij, aby wpisać</small></button>';
+    const k = kategoria(p.skurczowe, p.rozkurczowe);
+    return '<div style="border-left-color:'+k.kolor+'">'+nazwa+'<b>'+p.skurczowe+'/'+p.rozkurczowe+'</b><small>'+p.godzina+'</small></div>';
+  };
+  const dodatkowe = dzisiaj.filter(x=>x.pora==='dodatkowy').length;
+  return '<div class="dzis-tytul">Dziś'+(dodatkowe?' · dodatkowe: '+dodatkowe:'')+'</div>'+
+    '<div class="dzis">'+kafel('Rano','rano')+kafel('Wieczór','wieczór')+'</div>';
+}
 
 /* ---------- widok: stan bieżący ---------- */
 function rysujStan(){
   const el = document.getElementById('stan');
   document.getElementById('licznik').textContent =
-    pomiary.length ? pomiary.length + (pomiary.length===1?' pomiar':(pomiary.length<5?' pomiary':' pomiarów')) : '';
+    pomiary.length ? ilePomiarow(pomiary.length) : '';
 
   if(!pomiary.length){
     el.innerHTML = '<div class="kiedy" style="margin:0">Brak pomiarów. Wpisz pierwszy wynik poniżej — data i godzina są już ustawione na teraz.</div>';
@@ -243,6 +274,7 @@ function rysujStan(){
     '<span class="jedn">mmHg'+(p.tetno?' · tętno '+p.tetno:'')+'</span></div>'+
     '<div class="kiedy">'+opisDaty(p.data)+', '+p.godzina+' · '+p.pora+'</div>'+
     '<span class="plakietka" style="background:'+k.kolor+'">'+k.nazwa+'</span>'+
+    htmlDzis()+
     '<div class="srednie">'+
       '<div>Średnia z 7 dni<b>'+sr('skurczowe')+'/'+sr('rozkurczowe')+'</b></div>'+
       '<div>Średnie tętno<b>'+srTetno+'</b></div>'+
@@ -258,7 +290,7 @@ function rysujWykres(){
   karta.style.display='';
 
   document.getElementById('zakres-wykresu').textContent =
-    'ostatnie ' + dane.length + ' pomiarów';
+    'ostatnie ' + ilePomiarow(dane.length);
 
   const W=600, H=220, ml=34, mr=8, mt=12, mb=22;
   const wszystkie = dane.flatMap(p=>[p.skurczowe,p.rozkurczowe]);
@@ -327,7 +359,7 @@ function odswiez(){ rysujStan(); rysujWykres(); rysujListe(); }
 /* ---------- zapisywanie ---------- */
 function terazDoPol(){
   const t = new Date();
-  document.getElementById('data').value = t.getFullYear()+'-'+dwacyfry(t.getMonth()+1)+'-'+dwacyfry(t.getDate());
+  document.getElementById('data').value = isoDaty(t);
   document.getElementById('godzina').value = dwacyfry(t.getHours())+':'+dwacyfry(t.getMinutes());
   ustawPore(t.getHours() < 14 ? 'rano' : 'wieczór');
 }
@@ -338,6 +370,14 @@ function ustawPore(nowa){
 }
 document.getElementById('pory').addEventListener('click', e=>{
   if(e.target.dataset.pora) ustawPore(e.target.dataset.pora);
+});
+document.getElementById('stan').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-pora]');
+  if(!b) return;
+  ustawPore(b.dataset.pora);
+  const pole = document.getElementById('skurczowe');
+  pole.scrollIntoView({behavior:'smooth', block:'center'});
+  pole.focus({preventScroll:true});
 });
 
 document.getElementById('zapisz').addEventListener('click', ()=>{
@@ -393,28 +433,54 @@ document.getElementById('eksport').addEventListener('click', ()=>{
   a.click(); URL.revokeObjectURL(a.href);
 });
 
+// Pola w cudzysłowach mogą zawierać średniki, nowe linie i podwojone cudzysłowy ("").
+function parsujCSV(tekst){
+  const wiersze = [];
+  let wiersz = [], pole = '', wCudzyslowie = false;
+  for(let i=0; i<tekst.length; i++){
+    const c = tekst[i];
+    if(wCudzyslowie){
+      if(c==='"'){
+        if(tekst[i+1]==='"'){ pole+='"'; i++; }
+        else wCudzyslowie = false;
+      } else pole += c;
+    } else if(c==='"') wCudzyslowie = true;
+    else if(c===';'){ wiersz.push(pole); pole=''; }
+    else if(c==='\n' || c==='\r'){
+      if(c==='\r' && tekst[i+1]==='\n') i++;
+      wiersz.push(pole); wiersze.push(wiersz);
+      wiersz = []; pole = '';
+    } else pole += c;
+  }
+  if(pole || wiersz.length){ wiersz.push(pole); wiersze.push(wiersz); }
+  return wiersze.filter(w=>w.some(p=>p.trim()));
+}
+
 document.getElementById('import').addEventListener('click', ()=>document.getElementById('plik').click());
 document.getElementById('plik').addEventListener('change', e=>{
   const plik = e.target.files[0]; if(!plik) return;
   const czyt = new FileReader();
   czyt.onload = () => {
-    const linie = czyt.result.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+    const wiersze = parsujCSV(czyt.result.replace(/^\uFEFF/,''));
     let dodane = 0;
-    linie.slice(1).forEach(l=>{
-      const p = l.split(';').map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"'));
+    wiersze.slice(1).forEach(p=>{
       const s = parseInt(p[2],10), r = parseInt(p[3],10);
-      if(!p[0] || isNaN(s) || isNaN(r)) return;
-      if(pomiary.some(x=>x.data===p[0] && x.godzina===p[1] && x.skurczowe===s)) return;
+      const data = (p[0]||'').trim(), godzina = (p[1]||'').trim() || '12:00';
+      if(!data || isNaN(s) || isNaN(r)) return;
+      if(pomiary.some(x=>x.data===data && x.godzina===godzina && x.skurczowe===s)) return;
+      const pr = (p[5]||'').trim();
       pomiary.push({
         id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
-        data:p[0], godzina:p[1]||'12:00', skurczowe:s, rozkurczowe:r,
-        tetno: parseInt(p[4],10) || null, pora: p[5]||'dodatkowy', notatka: p[6]||''
+        data, godzina, skurczowe:s, rozkurczowe:r,
+        tetno: parseInt(p[4],10) || null,
+        pora: PORY.includes(pr) ? pr : 'dodatkowy',
+        notatka: p[6]||''
       });
       dodane++;
     });
     pomiary.sort((a,b)=> (b.data+b.godzina).localeCompare(a.data+a.godzina));
     zapisz(); odswiez();
-    alert(dodane ? 'Wczytano '+dodane+' pomiarów.' : 'Nie znaleziono nowych pomiarów w tym pliku.');
+    alert(dodane ? 'Wczytano '+ilePomiarow(dodane)+'.' : 'Nie znaleziono nowych pomiarów w tym pliku.');
   };
   czyt.readAsText(plik);
   e.target.value='';

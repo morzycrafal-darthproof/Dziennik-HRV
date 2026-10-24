@@ -23,7 +23,7 @@ Celowo bez frameworków i bez kroku budowania — jeden plik HTML z wbudowanym C
 | `index.html` | całość: struktura, style, logika |
 | `manifest.json` | manifest PWA (`display: standalone`, motyw `#123a33`) |
 | `sw.js` | service worker, cache `cisnienie-v1`, strategia cache-first |
-| `icon-192.png`, `icon-512.png` | ikona: linia EKG na ciemnej zieleni, „HRV" w tle |
+| `icon-192.png`, `icon-512.png` | ikona: linia EKG na ciemnej zieleni, półprzezroczyste serce w tle |
 
 Wszystkie pliki leżą w **korzeniu repo** — Pages serwuje branch `main`, folder `/ (root)`.
 

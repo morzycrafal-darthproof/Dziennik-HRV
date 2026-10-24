@@ -236,6 +236,23 @@ function ilePomiarow(n){
 }
 function isoDaty(t){ return t.getFullYear()+'-'+dwacyfry(t.getMonth()+1)+'-'+dwacyfry(t.getDate()); }
 
+/* ---------- średnie ---------- */
+// Pomiary z dni kalendarzowych od–do (włącznie, daty ISO).
+function pomiaryZOkresu(od, doDnia){
+  return pomiary.filter(x => x.data>=od && x.data<=doDnia);
+}
+// Średnia liczy tylko pomiary poranne i wieczorne — dodatkowe (przy objawach) są pomijane.
+function srednie(lista){
+  const zRytmu = lista.filter(x => x.pora!=='dodatkowy');
+  const sr = (wpisy, pole) => wpisy.length ? Math.round(wpisy.reduce((a,x)=>a+x[pole],0)/wpisy.length) : '—';
+  return {
+    skurczowe: sr(zRytmu, 'skurczowe'),
+    rozkurczowe: sr(zRytmu, 'rozkurczowe'),
+    tetno: sr(zRytmu.filter(x=>x.tetno), 'tetno'),
+    ile: zRytmu.length
+  };
+}
+
 /* ---------- widok: dzisiejszy rytm (rano / wieczór / dodatkowe) ---------- */
 function htmlDzis(){
   const dzisiaj = pomiary.filter(x=>x.data===isoDaty(new Date()));
@@ -263,11 +280,9 @@ function rysujStan(){
   const p = pomiary[0];
   const k = kategoria(p.skurczowe, p.rozkurczowe);
 
-  const granica = Date.now() - 7*86400000;
-  const ostatnie = pomiary.filter(x => new Date(x.data+'T'+x.godzina).getTime() >= granica);
-  const sr = t => ostatnie.length ? Math.round(ostatnie.reduce((a,x)=>a+x[t],0)/ostatnie.length) : '—';
-  const tetna = ostatnie.filter(x=>x.tetno);
-  const srTetno = tetna.length ? Math.round(tetna.reduce((a,x)=>a+x.tetno,0)/tetna.length) : '—';
+  const t = new Date();
+  const ostatnie = pomiaryZOkresu(isoDaty(new Date(t.getFullYear(), t.getMonth(), t.getDate()-6)), isoDaty(t));
+  const sr = srednie(ostatnie);
 
   el.innerHTML =
     '<div class="odczyt"><span class="liczby">'+p.skurczowe+'/'+p.rozkurczowe+'</span>'+
@@ -276,8 +291,8 @@ function rysujStan(){
     '<span class="plakietka" style="background:'+k.kolor+'">'+k.nazwa+'</span>'+
     htmlDzis()+
     '<div class="srednie">'+
-      '<div>Średnia z 7 dni<b>'+sr('skurczowe')+'/'+sr('rozkurczowe')+'</b></div>'+
-      '<div>Średnie tętno<b>'+srTetno+'</b></div>'+
+      '<div>Średnia z 7 dni<b>'+sr.skurczowe+'/'+sr.rozkurczowe+'</b></div>'+
+      '<div>Średnie tętno<b>'+sr.tetno+'</b></div>'+
       '<div>Pomiarów w 7 dni<b>'+ostatnie.length+'</b></div>'+
     '</div>';
 }
@@ -367,6 +382,10 @@ function ustawPore(nowa){
   pora = nowa;
   document.querySelectorAll('#pory button').forEach(b=>
     b.setAttribute('aria-pressed', String(b.dataset.pora===nowa)));
+  // pomiar dodatkowy robi się z powodu objawu — podpowiadamy, żeby go zapisać
+  const dodatkowy = nowa==='dodatkowy';
+  document.querySelector('label[for=notatka]').textContent = dodatkowy ? 'Powód pomiaru' : 'Notatka (opcjonalnie)';
+  document.getElementById('notatka').placeholder = dodatkowy ? 'Powód, np. ból głowy' : 'np. po kawie, przed lekami';
 }
 document.getElementById('pory').addEventListener('click', e=>{
   if(e.target.dataset.pora) ustawPore(e.target.dataset.pora);

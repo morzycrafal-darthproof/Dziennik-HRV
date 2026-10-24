@@ -840,6 +840,13 @@ function raportDodatkowe(dodatkowe){
 if(history.state && history.state.raport) history.replaceState(null, '');
 wczytaj(); terazDoPol(); odswiez();
 if('serviceWorker' in navigator){
+  // Strona startuje z cache; nowa wersja pobiera się w tle i przejmuje stronę chwilę później.
+  // Wtedy przeładowujemy — chyba że użytkownik jest w trakcie wpisywania pomiaru.
+  const byloSterowane = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    const wTrakcieWpisu = ['skurczowe','rozkurczowe','tetno','notatka'].some(id=>document.getElementById(id).value);
+    if(byloSterowane && !wTrakcieWpisu && !document.body.classList.contains('raport-otwarty')) location.reload();
+  });
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>

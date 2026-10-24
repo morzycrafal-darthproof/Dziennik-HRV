@@ -1,8 +1,14 @@
-const CACHE = 'cisnienie-v6';
+const CACHE = 'cisnienie-v7';
 const PLIKI = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
+// cache: 'reload' omija pamięć HTTP przeglądarki (GitHub Pages: max-age=600),
+// żeby nowa wersja cache nie dostała starych plików.
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PLIKI)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(PLIKI.map(u => new Request(u, {cache: 'reload'}))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {

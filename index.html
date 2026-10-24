@@ -115,6 +115,50 @@ svg{width:100%;height:auto;display:block}
   font:inherit;font-size:.85rem;font-weight:600;color:var(--atrament);cursor:pointer
 }
 footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 10px 0;line-height:1.5}
+
+/* --- raport dla lekarza --- */
+#raport{display:none}
+body.raport-otwarty>*:not(#raport){display:none}
+body.raport-otwarty #raport{display:block}
+.raport-pasek{padding:16px 0 14px}
+.raport-pasek .rzad{margin-bottom:10px}
+.raport-przyciski{display:flex;gap:10px;margin-top:12px}
+.raport-przyciski button{
+  flex:1;padding:12px;border-radius:10px;border:1px solid var(--linia);background:var(--karta);
+  font:inherit;font-size:.9rem;color:var(--atrament);cursor:pointer
+}
+.raport-przyciski .glowny{flex:2;background:var(--zielen-ciemna);border-color:var(--zielen-ciemna);color:#fff;font-weight:600}
+#raport-tresc{
+  background:var(--karta);color:var(--atrament);border:1px solid var(--linia);border-radius:var(--r);
+  padding:18px 16px;font-size:.85rem;line-height:1.35
+}
+.r-naglowek{border-bottom:2px solid var(--atrament);padding-bottom:8px;margin-bottom:14px}
+.r-naglowek h1{font-size:1.15rem;margin:0 0 6px}
+.r-sekcja{margin-bottom:18px}
+.r-sekcja h2{font-size:.95rem;font-weight:600;margin:0 0 6px}
+.r-tabela{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.r-tabela th,.r-tabela td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--linia);vertical-align:top}
+.r-tabela thead th{border-bottom:1.5px solid var(--atrament);font-size:.78rem}
+.r-tabela tr{break-inside:avoid}
+.r-zwarta th{font-weight:normal;color:var(--przygaszony);width:40%}
+.r-dzienna td:first-child{white-space:nowrap;width:16%}
+.r-dzienna td{width:42%}
+.r-pomiar+.r-pomiar{margin-top:4px}
+.r-maly{font-size:.75rem;color:var(--przygaszony)}
+.r-sekcja>.r-maly{margin:0 0 4px}
+.r-notatka{font-size:.72rem;color:var(--przygaszony);font-style:italic}
+.r-podsumowanie,.r-tygodnie,.r-wykres{break-inside:avoid}
+.r-legenda{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;font-size:.75rem;color:var(--przygaszony)}
+.r-legenda span{display:inline-flex;align-items:center;gap:5px}
+.r-legenda svg{width:auto;display:inline}
+.r-stopka{font-size:.72rem;color:var(--przygaszony);margin-top:14px}
+
+@media print{
+  @page{size:A4;margin:14mm 12mm}
+  body{max-width:none;padding:0;background:#fff}
+  .raport-pasek{display:none}
+  #raport-tresc{border:none;border-radius:0;padding:0;font-size:9.5pt}
+}
 </style>
 </head>
 <body>
@@ -190,6 +234,7 @@ footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 1
 </section>
 
 <div class="narzedzia">
+  <button class="glowny" id="raport-otworz">Raport dla lekarza</button>
   <button class="glowny" data-akcja="wyslij-kopie">Wyślij kopię</button>
   <button id="eksport">Eksportuj CSV</button>
   <button id="import">Wczytaj CSV</button>
@@ -200,6 +245,30 @@ footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 1
   Dane zapisują się tylko w pamięci tej przeglądarki. Rób kopię przyciskiem „Wyślij kopię”.<br>
   Aplikacja pomaga notować pomiary — nie służy do oceny stanu zdrowia.
 </footer>
+
+<section id="raport">
+  <div class="raport-pasek">
+    <div class="rzad">
+      <div>
+        <label for="raport-od">Od</label>
+        <input type="date" id="raport-od">
+      </div>
+      <div>
+        <label for="raport-do">Do</label>
+        <input type="date" id="raport-do">
+      </div>
+    </div>
+    <div>
+      <label for="raport-pacjent">Imię i nazwisko (opcjonalnie)</label>
+      <input type="text" id="raport-pacjent" autocomplete="name">
+    </div>
+    <div class="raport-przyciski">
+      <button type="button" id="raport-zamknij">Wróć</button>
+      <button type="button" class="glowny" id="raport-drukuj">Drukuj / zapisz PDF</button>
+    </div>
+  </div>
+  <div id="raport-tresc"></div>
+</section>
 
 <script>
 const KLUCZ = 'pomiary-cisnienia-v1';
@@ -576,7 +645,199 @@ document.getElementById('plik').addEventListener('change', e=>{
   e.target.value='';
 });
 
+/* ---------- raport dla lekarza ---------- */
+// Wydruk z wybranego zakresu dat: same dane, bez kategorii i kolorów ocen.
+const KLUCZ_PACJENTA = 'raport-pacjent-v1';
+const dniKrotko = ['nd','pn','wt','śr','cz','pt','sb'];
+function bezpieczny(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function dodajDni(iso, n){ const d = new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return isoDaty(d); }
+function dniWOkresie(od, doDnia){ return dniOd(od) - dniOd(doDnia) + 1; }
+function dataPL(iso){ return iso.slice(8,10)+'.'+iso.slice(5,7)+'.'+iso.slice(0,4); }
+function dataKrotko(iso){ return iso.slice(8,10)+'.'+iso.slice(5,7); }
+function wartosc(p){ return p.skurczowe+'/'+p.rozkurczowe; }
+function sredniaTekst(s){ return s.ile ? s.skurczowe+'/'+s.rozkurczowe : '—'; }
+function ileDni(n){ return n + (n===1 ? ' dzień' : ' dni'); }
+
+function otworzRaport(){
+  const dzis = isoDaty(new Date());
+  document.getElementById('raport-od').value = dodajDni(dzis, -29);
+  document.getElementById('raport-do').value = dzis;
+  try{ document.getElementById('raport-pacjent').value = localStorage.getItem(KLUCZ_PACJENTA) || ''; }catch(e){}
+  document.body.classList.add('raport-otwarty');
+  history.pushState({raport:true}, '');   // systemowe „wstecz” zamyka raport zamiast aplikacji
+  window.scrollTo(0,0);
+  rysujRaport();
+}
+document.getElementById('raport-otworz').addEventListener('click', otworzRaport);
+document.getElementById('raport-zamknij').addEventListener('click', ()=>history.back());
+window.addEventListener('popstate', ()=>
+  document.body.classList.toggle('raport-otwarty', !!(history.state && history.state.raport)));
+document.getElementById('raport-drukuj').addEventListener('click', ()=>window.print());
+['raport-od','raport-do'].forEach(id=>document.getElementById(id).addEventListener('change', rysujRaport));
+document.getElementById('raport-pacjent').addEventListener('input', e=>{
+  try{ localStorage.setItem(KLUCZ_PACJENTA, e.target.value.trim()); }catch(err){}
+  rysujRaport();
+});
+
+function rysujRaport(){
+  let od = document.getElementById('raport-od').value, doDnia = document.getElementById('raport-do').value;
+  const tresc = document.getElementById('raport-tresc');
+  if(!od || !doDnia){ tresc.innerHTML = '<p class="pusto">Wybierz zakres dat.</p>'; return; }
+  if(od > doDnia) [od, doDnia] = [doDnia, od];
+  const pacjent = document.getElementById('raport-pacjent').value.trim();
+
+  const wOkresie = pomiaryZOkresu(od, doDnia).slice().reverse();   // rosnąco w czasie
+  const zRytmu = wOkresie.filter(p=>p.pora!=='dodatkowy');
+  const dodatkowe = wOkresie.filter(p=>p.pora==='dodatkowy');
+  const dniOkresu = dniWOkresie(od, doDnia);
+
+  let html = '<div class="r-naglowek"><h1>Domowe pomiary ciśnienia tętniczego</h1>'+
+    (pacjent ? '<div>Pacjent: <b>'+bezpieczny(pacjent)+'</b></div>' : '')+
+    '<div>Okres: <b>'+dataPL(od)+' – '+dataPL(doDnia)+'</b> ('+ileDni(dniOkresu)+')</div>'+
+    '<div class="r-maly">Wygenerowano '+dataPL(isoDaty(new Date()))+' w aplikacji Dziennik ciśnienia</div></div>';
+
+  if(!wOkresie.length){ tresc.innerHTML = html+'<p class="pusto">Brak pomiarów w wybranym okresie.</p>'; return; }
+
+  html += raportPodsumowanie(zRytmu, dodatkowe, dniOkresu);
+  if(dniOkresu > 14) html += raportTygodnie(od, doDnia);
+  html += raportWykres(od, doDnia, wOkresie);
+  html += raportTabela(zRytmu);
+  if(dodatkowe.length) html += raportDodatkowe(dodatkowe);
+  html += '<p class="r-stopka">Pomiary wykonane i zapisane przez pacjenta w domu. Średnie obejmują pomiary '+
+    'poranne i wieczorne; pomiary dodatkowe, wykonane z powodu objawów, wymieniono osobno. '+
+    'Raport przedstawia dane bez ich oceny.</p>';
+  tresc.innerHTML = html;
+}
+
+function raportPodsumowanie(zRytmu, dodatkowe, dniOkresu){
+  const rano = srednie(zRytmu.filter(p=>p.pora==='rano'));
+  const wieczor = srednie(zRytmu.filter(p=>p.pora==='wieczór'));
+  const razem = srednie(zRytmu);
+  const wiersz = (tytul, s) => '<tr><th>'+tytul+'</th><td><b>'+sredniaTekst(s)+'</b>'+
+    (s.ile ? ' mmHg <span class="r-maly">· tętno '+s.tetno+' · '+ilePomiarow(s.ile)+'</span>' : '')+'</td></tr>';
+
+  const ranoDni = new Set(zRytmu.filter(p=>p.pora==='rano').map(p=>p.data));
+  const zKompletem = new Set(zRytmu.filter(p=>p.pora==='wieczór' && ranoDni.has(p.data)).map(p=>p.data));
+
+  const wgCisnienia = zRytmu.slice().sort((a,b)=> b.skurczowe-a.skurczowe || b.rozkurczowe-a.rozkurczowe);
+  const opis = p => '<b>'+wartosc(p)+'</b> <span class="r-maly">'+dniKrotko[new Date(p.data+'T12:00:00').getDay()]+' '+
+    dataKrotko(p.data)+', '+p.godzina+' · '+p.pora+'</span>';
+
+  return '<section class="r-sekcja r-podsumowanie"><h2>Podsumowanie</h2><table class="r-tabela r-zwarta">'+
+    wiersz('Średnia poranna', rano)+
+    wiersz('Średnia wieczorna', wieczor)+
+    wiersz('Średnia łączna', razem)+
+    (zRytmu.length ?
+      '<tr><th>Najwyższy pomiar <span class="r-maly">(rano/wieczór)</span></th><td>'+opis(wgCisnienia[0])+'</td></tr>'+
+      '<tr><th>Najniższy pomiar <span class="r-maly">(rano/wieczór)</span></th><td>'+opis(wgCisnienia[wgCisnienia.length-1])+'</td></tr>' : '')+
+    '<tr><th>Dni z kompletem pomiarów</th><td><b>'+zKompletem.size+'</b> z '+ileDni(dniOkresu)+
+      ' <span class="r-maly">(poranny i wieczorny)</span></td></tr>'+
+    '<tr><th>Pomiary dodatkowe</th><td><b>'+dodatkowe.length+'</b>'+
+      (dodatkowe.length ? ' <span class="r-maly">(wymienione na końcu raportu)</span>' : '')+'</td></tr>'+
+    '</table></section>';
+}
+
+// Tygodnie kalendarzowe pon–niedz, przycięte do zakresu raportu.
+function raportTygodnie(od, doDnia){
+  const dzienTyg = new Date(od+'T12:00:00').getDay();
+  let wiersze = '';
+  for(let pon = dodajDni(od, -((dzienTyg+6)%7)); pon <= doDnia; pon = dodajDni(pon, 7)){
+    const s = pon < od ? od : pon;
+    const nd = dodajDni(pon, 6), k = nd > doDnia ? doDnia : nd;
+    const lista = pomiaryZOkresu(s, k);
+    const r = srednie(lista.filter(p=>p.pora==='rano')), w = srednie(lista.filter(p=>p.pora==='wieczór')), c = srednie(lista);
+    const dniTyg = dniWOkresie(s, k);
+    wiersze += '<tr><td>'+dataKrotko(s)+'–'+dataKrotko(k)+(dniTyg<7 ? ' <span class="r-maly">('+ileDni(dniTyg)+')</span>' : '')+'</td>'+
+      '<td>'+sredniaTekst(r)+'</td><td>'+sredniaTekst(w)+'</td><td><b>'+sredniaTekst(c)+'</b></td><td>'+c.tetno+'</td></tr>';
+  }
+  return '<section class="r-sekcja r-tygodnie"><h2>Średnie tygodniowe</h2><table class="r-tabela">'+
+    '<thead><tr><th>Tydzień</th><th>Rano</th><th>Wieczór</th><th>Łącznie</th><th>Tętno</th></tr></thead>'+
+    '<tbody>'+wiersze+'</tbody></table></section>';
+}
+
+// Oś X to czas (dni zakresu), nie kolejne pomiary — luki w pomiarach są widoczne.
+function raportWykres(od, doDnia, lista){
+  const W=700, H=240, ml=34, mr=8, mt=8, mb=22;
+  const dniOkresu = dniWOkresie(od, doDnia);
+  const wartosci = lista.flatMap(p=>[p.skurczowe,p.rozkurczowe]);
+  const min = Math.floor((Math.min(...wartosci)-5)/10)*10, max = Math.ceil((Math.max(...wartosci)+5)/10)*10;
+  const krok = max-min > 80 ? 20 : 10;
+  const x = p => {
+    const ulamek = (parseInt(p.godzina.slice(0,2),10)*60 + parseInt(p.godzina.slice(3,5),10)) / 1440;
+    return ml + (dniWOkresie(od, p.data) - 1 + ulamek) * (W-ml-mr) / dniOkresu;
+  };
+  const y = v => mt + (max-v)*(H-mt-mb)/(max-min);
+
+  let svg = '';
+  for(let v=min; v<=max; v+=krok){
+    svg += '<line x1="'+ml+'" y1="'+y(v)+'" x2="'+(W-mr)+'" y2="'+y(v)+'" stroke="#d3dcd9" stroke-width="1"/>'+
+           '<text x="'+(ml-6)+'" y="'+(y(v)+4)+'" font-size="11" fill="#5d6f6a" text-anchor="end">'+v+'</text>';
+  }
+  for(let i=0; i<dniOkresu; i++){        // podpisy osi przy poniedziałkach
+    const d = dodajDni(od, i);
+    if(new Date(d+'T12:00:00').getDay()!==1) continue;
+    const px = ml + i*(W-ml-mr)/dniOkresu;
+    svg += '<line x1="'+px+'" y1="'+mt+'" x2="'+px+'" y2="'+(H-mb)+'" stroke="#e2e9e7" stroke-width="1"/>'+
+           '<text x="'+px+'" y="'+(H-6)+'" font-size="11" fill="#5d6f6a" text-anchor="middle">'+dataKrotko(d)+'</text>';
+  }
+
+  const seria = (pora, kolor, kreska, wypelnienie) => {
+    const pkt = lista.filter(p=>p.pora===pora);
+    if(!pkt.length) return '';
+    let out = '';
+    ['skurczowe','rozkurczowe'].forEach(pole=>{
+      if(pkt.length > 1) out += '<path d="'+pkt.map((p,i)=>(i?'L':'M')+x(p).toFixed(1)+' '+y(p[pole]).toFixed(1)).join(' ')+
+        '" fill="none" stroke="'+kolor+'" stroke-width="1.6" stroke-linejoin="round"'+(kreska?' stroke-dasharray="'+kreska+'"':'')+'/>';
+      out += pkt.map(p=>'<circle cx="'+x(p).toFixed(1)+'" cy="'+y(p[pole]).toFixed(1)+'" r="2.6" fill="'+wypelnienie+'" stroke="'+kolor+'" stroke-width="1.2"/>').join('');
+    });
+    return out;
+  };
+  svg += seria('rano', '#123a33', '', '#123a33') + seria('wieczór', '#5d6f6a', '5 3', '#ffffff');
+  // dodatkowe: same punkty (romby), bez linii
+  lista.filter(p=>p.pora==='dodatkowy').forEach(p=>['skurczowe','rozkurczowe'].forEach(pole=>{
+    const cx = x(p), cy = y(p[pole]);
+    svg += '<path d="M'+cx.toFixed(1)+' '+(cy-4.5).toFixed(1)+' l4.5 4.5 l-4.5 4.5 l-4.5 -4.5 z" fill="#ffffff" stroke="#12241f" stroke-width="1.3"/>';
+  }));
+
+  return '<section class="r-sekcja r-wykres"><h2>Przebieg</h2>'+
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Wykres ciśnienia w wybranym okresie">'+svg+'</svg>'+
+    '<div class="r-legenda">'+
+      '<span><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#123a33" stroke-width="1.6"/><circle cx="13" cy="5" r="2.6" fill="#123a33"/></svg>rano</span>'+
+      '<span><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#5d6f6a" stroke-width="1.6" stroke-dasharray="5 3"/><circle cx="13" cy="5" r="2.6" fill="#fff" stroke="#5d6f6a" stroke-width="1.2"/></svg>wieczór</span>'+
+      '<span><svg width="14" height="12"><path d="M7 1.5 l4.5 4.5 l-4.5 4.5 l-4.5 -4.5 z" fill="#fff" stroke="#12241f" stroke-width="1.3"/></svg>dodatkowy</span>'+
+      '<span>górna linia — skurczowe, dolna — rozkurczowe</span>'+
+    '</div></section>';
+}
+
+function raportTabela(zRytmu){
+  const wgDni = new Map();
+  zRytmu.forEach(p=>{
+    if(!wgDni.has(p.data)) wgDni.set(p.data, {rano:[], 'wieczór':[]});
+    wgDni.get(p.data)[p.pora].push(p);
+  });
+  const komorka = lista => lista.length ? lista.map(p=>
+    '<div class="r-pomiar"><b>'+wartosc(p)+'</b>'+(p.tetno ? ' · '+p.tetno : '')+' <span class="r-maly">'+p.godzina+'</span>'+
+    (p.notatka ? '<div class="r-notatka">'+bezpieczny(p.notatka)+'</div>' : '')+'</div>').join('') : '<span class="r-maly">—</span>';
+  let wiersze = '';
+  wgDni.forEach((pory, d)=>{
+    wiersze += '<tr><td>'+dniKrotko[new Date(d+'T12:00:00').getDay()]+' '+dataKrotko(d)+'</td>'+
+      '<td>'+komorka(pory.rano)+'</td><td>'+komorka(pory['wieczór'])+'</td></tr>';
+  });
+  return '<section class="r-sekcja"><h2>Pomiary dzienne</h2>'+
+    '<p class="r-maly">ciśnienie mmHg · tętno ud/min · godzina</p><table class="r-tabela r-dzienna">'+
+    '<thead><tr><th>Dzień</th><th>Rano</th><th>Wieczór</th></tr></thead><tbody>'+wiersze+'</tbody></table></section>';
+}
+
+function raportDodatkowe(dodatkowe){
+  return '<section class="r-sekcja"><h2>Pomiary dodatkowe</h2><table class="r-tabela">'+
+    '<thead><tr><th>Dzień</th><th>Godzina</th><th>Ciśnienie</th><th>Tętno</th><th>Powód</th></tr></thead><tbody>'+
+    dodatkowe.map(p=>'<tr><td>'+dniKrotko[new Date(p.data+'T12:00:00').getDay()]+' '+dataKrotko(p.data)+'</td><td>'+p.godzina+
+      '</td><td><b>'+wartosc(p)+'</b></td><td>'+(p.tetno||'—')+'</td><td>'+(p.notatka ? bezpieczny(p.notatka) : '<span class="r-maly">—</span>')+'</td></tr>').join('')+
+    '</tbody></table></section>';
+}
+
 /* ---------- start ---------- */
+if(history.state && history.state.raport) history.replaceState(null, '');
 wczytaj(); terazDoPol(); odswiez();
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(()=>{});

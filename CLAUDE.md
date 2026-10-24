@@ -63,6 +63,11 @@ rozkurczowe + tetno` (dwa różne pomiary w tej samej minucie są zachowywane).
   nazwami dni.
 - `terazDoPol()` — podstawia bieżącą datę i godzinę, ustawia porę na „rano" przed 14:00,
   w przeciwnym razie „wieczór".
+- `pomiaryZOkresu()` + `srednie()` — średnie liczone tylko z pomiarów porannych i wieczornych
+  (dodatkowe są pomijane); wspólne dla karty stanu i raportu.
+- `rysujRaport()` — raport dla lekarza: widok A4 do druku / zapisu jako PDF (`window.print()`),
+  zakres dat, podsumowanie, średnie tygodniowe, wykres z osią czasu, tabela dzienna,
+  pomiary dodatkowe z powodem. Bez kategorii i kolorów ocen.
 - Walidacja przed zapisem: zakresy wartości oraz sprawdzenie, czy dolna wartość nie jest
   większa od górnej (częsta pomyłka przy zamianie pól).
 
@@ -80,7 +85,6 @@ rozkurczowe + tetno` (dwa różne pomiary w tej samej minucie są zachowywane).
 
 - Wersja desktopowa w Pythonie (tkinter + matplotlib), analogicznie do równoległego
   projektu dziennika kosztów auta.
-- Eksport do PDF jako wydruk dla lekarza (średnie tygodniowe, zakres dat).
 - Filtr zakresu dat na wykresie (7 / 30 / 90 dni).
 - Oddzielne średnie dla pomiarów porannych i wieczornych — bywają istotnie różne.
 - Przypomnienia o pomiarze (Notification API, wymaga zgody użytkownika).

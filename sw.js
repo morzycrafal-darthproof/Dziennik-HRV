@@ -1,4 +1,4 @@
-const CACHE = 'cisnienie-v4';
+const CACHE = 'cisnienie-v5';
 const PLIKI = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

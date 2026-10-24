@@ -97,10 +97,22 @@ svg{width:100%;height:auto;display:block}
 .wpis .meta em{font-style:normal;display:block;color:var(--atrament);opacity:.75;word-break:break-word}
 .usun{background:none;border:none;color:var(--przygaszony);font-size:1.1rem;padding:6px 4px;cursor:pointer;flex:none}
 .pusto{color:var(--przygaszony);font-size:.9rem;text-align:center;padding:24px 8px}
-.narzedzia{display:flex;gap:10px}
+.narzedzia{display:flex;flex-wrap:wrap;gap:10px}
 .narzedzia button{
   flex:1;padding:12px;border-radius:10px;border:1px solid var(--linia);
   background:var(--karta);font:inherit;font-size:.88rem;color:var(--atrament);cursor:pointer
+}
+.narzedzia .glowny{flex-basis:100%;border-color:var(--zielen);color:var(--zielen);font-weight:600}
+.przypomnienie{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 14px;
+  background:var(--karta);border:1px solid var(--linia);border-left:4px solid var(--bursztyn);
+  border-radius:var(--r);font-size:.88rem
+}
+.przypomnienie[hidden]{display:none}
+.przypomnienie span{flex:1}
+.przypomnienie button{
+  flex:none;padding:8px 12px;border-radius:8px;border:1px solid var(--bursztyn);background:none;
+  font:inherit;font-size:.85rem;font-weight:600;color:var(--atrament);cursor:pointer
 }
 footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 10px 0;line-height:1.5}
 </style>
@@ -167,6 +179,8 @@ footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 1
   </div>
 </section>
 
+<div class="przypomnienie" id="przypomnienie-kopii" role="status" hidden></div>
+
 <section class="karta">
   <div class="naglowek-sekcji">
     <h2>Historia</h2>
@@ -176,13 +190,14 @@ footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 1
 </section>
 
 <div class="narzedzia">
+  <button class="glowny" data-akcja="wyslij-kopie">Wyślij kopię</button>
   <button id="eksport">Eksportuj CSV</button>
   <button id="import">Wczytaj CSV</button>
 </div>
 <input type="file" id="plik" accept=".csv,text/csv" hidden>
 
 <footer>
-  Dane zapisują się tylko w pamięci tej przeglądarki. Rób kopię przez eksport CSV.<br>
+  Dane zapisują się tylko w pamięci tej przeglądarki. Rób kopię przyciskiem „Wyślij kopię”.<br>
   Aplikacja pomaga notować pomiary — nie służy do oceny stanu zdrowia.
 </footer>
 
@@ -369,7 +384,7 @@ function rysujListe(){
   lista.innerHTML = html;
 }
 
-function odswiez(){ rysujStan(); rysujWykres(); rysujListe(); }
+function odswiez(){ rysujStan(); rysujWykres(); rysujListe(); rysujPrzypomnienie(); }
 
 /* ---------- zapisywanie ---------- */
 function terazDoPol(){
@@ -439,18 +454,72 @@ document.getElementById('lista').addEventListener('click', e=>{
 });
 
 /* ---------- CSV ---------- */
-document.getElementById('eksport').addEventListener('click', ()=>{
-  if(!pomiary.length){ alert('Nie ma jeszcze żadnych pomiarów do wyeksportowania.'); return; }
+function csvDziennika(){
   const wiersze = [['data','godzina','skurczowe','rozkurczowe','tetno','pora','notatka']];
   [...pomiary].reverse().forEach(p=>wiersze.push([
     p.data,p.godzina,p.skurczowe,p.rozkurczowe,p.tetno||'',p.pora,(p.notatka||'').replace(/"/g,'""')
   ]));
-  const csv = '\uFEFF' + wiersze.map(w=>w.map(c=>'"'+c+'"').join(';')).join('\n');
+  return '\uFEFF' + wiersze.map(w=>w.map(c=>'"'+c+'"').join(';')).join('\n');
+}
+function nazwaKopii(){ return 'cisnienie-'+isoDaty(new Date())+'.csv'; }
+
+function pobierzKopie(){
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download = 'cisnienie-'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click(); URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(new Blob([csvDziennika()],{type:'text/csv;charset=utf-8'}));
+  a.download = nazwaKopii();
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  zapiszDateKopii();
+}
+
+document.getElementById('eksport').addEventListener('click', ()=>{
+  if(!pomiary.length){ alert('Nie ma jeszcze żadnych pomiarów do wyeksportowania.'); return; }
+  pobierzKopie();
 });
+
+// Menu „Udostępnij” Androida — np. zapis na Dysku Google w dwóch stuknięciach.
+// Bez obsługi udostępniania plików (np. na komputerze) po prostu pobiera plik.
+async function wyslijKopie(){
+  if(!pomiary.length){ alert('Nie ma jeszcze żadnych pomiarów do wysłania.'); return; }
+  const plik = new File([csvDziennika()], nazwaKopii(), {type:'text/csv'});
+  if(!(navigator.canShare && navigator.canShare({files:[plik]}))){ pobierzKopie(); return; }
+  try{
+    await navigator.share({files:[plik], title:'Kopia dziennika ciśnienia'});
+    zapiszDateKopii();
+  }catch(e){
+    if(e.name!=='AbortError') pobierzKopie();   // anulowanie przez użytkownika to nie błąd
+  }
+}
+document.querySelectorAll('[data-akcja=wyslij-kopie]').forEach(b=>b.addEventListener('click', wyslijKopie));
+document.getElementById('przypomnienie-kopii').addEventListener('click', e=>{
+  if(e.target.closest('button')) wyslijKopie();
+});
+
+/* ---------- przypomnienie o kopii ---------- */
+const KLUCZ_KOPII = 'ostatnia-kopia-v1';
+const DNI_DO_PRZYPOMNIENIA = 5;
+function zapiszDateKopii(){
+  try{ localStorage.setItem(KLUCZ_KOPII, isoDaty(new Date())); }catch(e){}
+  rysujPrzypomnienie();
+}
+function dniOd(iso){
+  const d = new Date(iso+'T12:00:00'), dzis = new Date(); dzis.setHours(12,0,0,0);
+  return Math.round((dzis-d)/86400000);
+}
+function rysujPrzypomnienie(){
+  const el = document.getElementById('przypomnienie-kopii');
+  let ostatnia = null;
+  try{ ostatnia = localStorage.getItem(KLUCZ_KOPII); }catch(e){}
+  let tekst = '';
+  if(ostatnia){
+    const ile = dniOd(ostatnia);
+    if(ile >= DNI_DO_PRZYPOMNIENIA) tekst = 'Ostatnia kopia: '+ile+' dni temu.';
+  } else if(pomiary.length && dniOd(pomiary[pomiary.length-1].data) >= DNI_DO_PRZYPOMNIENIA){
+    tekst = 'Nie masz jeszcze kopii zapasowej pomiarów.';
+  }
+  el.hidden = !tekst;
+  if(tekst) el.innerHTML = '<span>'+tekst+'</span><button type="button">Wyślij kopię</button>';
+}
 
 // Pola w cudzysłowach mogą zawierać średniki, nowe linie i podwojone cudzysłowy ("").
 function parsujCSV(tekst){

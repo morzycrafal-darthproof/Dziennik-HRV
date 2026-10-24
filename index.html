@@ -581,10 +581,12 @@ document.getElementById('eksport').addEventListener('click', ()=>{
 // Bez obsługi udostępniania plików (np. na komputerze) po prostu pobiera plik.
 async function wyslijKopie(){
   if(!pomiary.length){ alert('Nie ma jeszcze żadnych pomiarów do wysłania.'); return; }
-  const plik = new File([csvDziennika()], nazwaKopii(), {type:'text/csv'});
+  // Bez „title”: Dysk Google brał go za nazwę pliku (bez .csv). Charset — żeby Arkusze
+  // nie czytały pliku jako Windows-1250.
+  const plik = new File([csvDziennika()], nazwaKopii(), {type:'text/csv;charset=utf-8'});
   if(!(navigator.canShare && navigator.canShare({files:[plik]}))){ pobierzKopie(); return; }
   try{
-    await navigator.share({files:[plik], title:'Kopia dziennika ciśnienia'});
+    await navigator.share({files:[plik]});
     zapiszDateKopii();
   }catch(e){
     if(e.name!=='AbortError') pobierzKopie();   // anulowanie przez użytkownika to nie błąd

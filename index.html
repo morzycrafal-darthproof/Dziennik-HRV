@@ -581,9 +581,9 @@ document.getElementById('eksport').addEventListener('click', ()=>{
 // Bez obsługi udostępniania plików (np. na komputerze) po prostu pobiera plik.
 async function wyslijKopie(){
   if(!pomiary.length){ alert('Nie ma jeszcze żadnych pomiarów do wysłania.'); return; }
-  // Bez „title”: Dysk Google brał go za nazwę pliku (bez .csv). Charset — żeby Arkusze
-  // nie czytały pliku jako Windows-1250.
-  const plik = new File([csvDziennika()], nazwaKopii(), {type:'text/csv;charset=utf-8'});
+  // Bez „title”: Dysk Google brał go za nazwę pliku (bez .csv).
+  // Typ bez „;charset=…” — z nim Dysk znika z menu Udostępnij (nie rozpoznaje typu).
+  const plik = new File([csvDziennika()], nazwaKopii(), {type:'text/csv'});
   if(!(navigator.canShare && navigator.canShare({files:[plik]}))){ pobierzKopie(); return; }
   try{
     await navigator.share({files:[plik]});

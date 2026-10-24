@@ -26,7 +26,7 @@ body{
   color:var(--atrament);
   font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-size:16px;line-height:1.45;
-  padding:0 14px calc(28px + env(safe-area-inset-bottom));
+  padding:0 14px calc(96px + env(safe-area-inset-bottom));   /* miejsce na dolną nawigację */
   max-width:620px;margin:0 auto;
 }
 h1{font-size:1.05rem;font-weight:600;letter-spacing:.01em;margin:0}
@@ -116,18 +116,28 @@ svg{width:100%;height:auto;display:block}
 }
 footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 10px 0;line-height:1.5}
 
-/* --- raport dla lekarza --- */
-#raport{display:none}
-body.raport-otwarty>*:not(#raport){display:none}
-body.raport-otwarty #raport{display:block}
-.raport-pasek{padding:16px 0 14px}
-.raport-pasek .rzad{margin-bottom:10px}
-.raport-przyciski{display:flex;gap:10px;margin-top:12px}
-.raport-przyciski button{
-  flex:1;padding:12px;border-radius:10px;border:1px solid var(--linia);background:var(--karta);
-  font:inherit;font-size:.9rem;color:var(--atrament);cursor:pointer
+/* --- strony i dolna nawigacja --- */
+.strona[hidden]{display:none}
+.opis{font-size:.88rem;color:var(--przygaszony);margin:0 0 12px}
+.nawigacja{
+  position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:center;
+  background:var(--karta);border-top:1px solid var(--linia);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom))
 }
-.raport-przyciski .glowny{flex:2;background:var(--zielen-ciemna);border-color:var(--zielen-ciemna);color:#fff;font-weight:600}
+.nawigacja button{
+  flex:1;max-width:150px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 4px;border:none;border-radius:12px;background:none;cursor:pointer;
+  font:inherit;font-size:.74rem;color:var(--przygaszony)
+}
+.nawigacja svg{
+  width:44px;height:28px;padding:4px 10px;border-radius:999px;
+  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round
+}
+.nawigacja button[aria-current=page]{color:var(--zielen-ciemna);font-weight:600}
+.nawigacja button[aria-current=page] svg{background:var(--tlo)}
+
+/* --- raport dla lekarza --- */
+.raport-pasek .rzad{margin-bottom:10px}
 #raport-tresc{
   background:var(--karta);color:var(--atrament);border:1px solid var(--linia);border-radius:var(--r);
   padding:18px 16px;font-size:.85rem;line-height:1.35
@@ -156,7 +166,7 @@ body.raport-otwarty #raport{display:block}
 @media print{
   @page{size:A4;margin:14mm 12mm}
   body{max-width:none;padding:0;background:#fff}
-  .raport-pasek{display:none}
+  header,.nawigacja,.raport-pasek{display:none}
   #raport-tresc{border:none;border-radius:0;padding:0;font-size:9.5pt}
 }
 </style>
@@ -168,86 +178,77 @@ body.raport-otwarty #raport{display:block}
   <span id="licznik"></span>
 </header>
 
-<section class="karta stan" id="stan"></section>
+<main class="strona" id="strona-pomiar">
+  <section class="karta stan" id="stan"></section>
 
-<section class="karta">
-  <div class="rzad">
-    <div>
-      <label for="data">Data</label>
-      <input type="date" id="data">
+  <div class="przypomnienie" id="przypomnienie-kopii" role="status" hidden></div>
+
+  <section class="karta">
+    <div class="rzad">
+      <div>
+        <label for="data">Data</label>
+        <input type="date" id="data">
+      </div>
+      <div>
+        <label for="godzina">Godzina</label>
+        <input type="time" id="godzina">
+      </div>
     </div>
-    <div>
-      <label for="godzina">Godzina</label>
-      <input type="time" id="godzina">
+
+    <div class="rzad">
+      <div>
+        <label for="skurczowe">Górne (skurczowe)</label>
+        <input type="number" id="skurczowe" inputmode="numeric" min="50" max="300" placeholder="120">
+      </div>
+      <div>
+        <label for="rozkurczowe">Dolne (rozkurczowe)</label>
+        <input type="number" id="rozkurczowe" inputmode="numeric" min="30" max="200" placeholder="80">
+      </div>
+      <div>
+        <label for="tetno">Tętno</label>
+        <input type="number" id="tetno" inputmode="numeric" min="20" max="250" placeholder="—">
+      </div>
     </div>
-  </div>
 
-  <div class="rzad">
-    <div>
-      <label for="skurczowe">Górne (skurczowe)</label>
-      <input type="number" id="skurczowe" inputmode="numeric" min="50" max="300" placeholder="120">
+    <label>Pora pomiaru</label>
+    <div class="pory" id="pory" style="margin-bottom:12px">
+      <button type="button" data-pora="rano" aria-pressed="true">Rano</button>
+      <button type="button" data-pora="wieczór" aria-pressed="false">Wieczór</button>
+      <button type="button" data-pora="dodatkowy" aria-pressed="false">Dodatkowy</button>
     </div>
-    <div>
-      <label for="rozkurczowe">Dolne (rozkurczowe)</label>
-      <input type="number" id="rozkurczowe" inputmode="numeric" min="30" max="200" placeholder="80">
+
+    <label for="notatka">Notatka (opcjonalnie)</label>
+    <input type="text" id="notatka" placeholder="np. po kawie, przed lekami">
+
+    <div class="blad" id="blad"></div>
+    <button class="zapisz" id="zapisz">Zapisz pomiar</button>
+  </section>
+</main>
+
+<main class="strona" id="strona-historia" hidden>
+  <section class="karta" id="karta-wykresu">
+    <div class="naglowek-sekcji">
+      <h2>Przebieg</h2>
+      <small id="zakres-wykresu"></small>
     </div>
-    <div>
-      <label for="tetno">Tętno</label>
-      <input type="number" id="tetno" inputmode="numeric" min="20" max="250" placeholder="—">
+    <div id="wykres"></div>
+    <div class="legenda">
+      <span><i style="background:#123a33"></i>górne</span>
+      <span><i style="background:#7fae9f"></i>dolne</span>
     </div>
-  </div>
+  </section>
 
-  <label>Pora pomiaru</label>
-  <div class="pory" id="pory" style="margin-bottom:12px">
-    <button type="button" data-pora="rano" aria-pressed="true">Rano</button>
-    <button type="button" data-pora="wieczór" aria-pressed="false">Wieczór</button>
-    <button type="button" data-pora="dodatkowy" aria-pressed="false">Dodatkowy</button>
-  </div>
+  <section class="karta">
+    <div class="naglowek-sekcji">
+      <h2>Historia</h2>
+      <small id="podsumowanie-historii"></small>
+    </div>
+    <div id="lista"></div>
+  </section>
+</main>
 
-  <label for="notatka">Notatka (opcjonalnie)</label>
-  <input type="text" id="notatka" placeholder="np. po kawie, przed lekami">
-
-  <div class="blad" id="blad"></div>
-  <button class="zapisz" id="zapisz">Zapisz pomiar</button>
-</section>
-
-<section class="karta" id="karta-wykresu">
-  <div class="naglowek-sekcji">
-    <h2>Przebieg</h2>
-    <small id="zakres-wykresu"></small>
-  </div>
-  <div id="wykres"></div>
-  <div class="legenda">
-    <span><i style="background:#123a33"></i>górne</span>
-    <span><i style="background:#7fae9f"></i>dolne</span>
-  </div>
-</section>
-
-<div class="przypomnienie" id="przypomnienie-kopii" role="status" hidden></div>
-
-<section class="karta">
-  <div class="naglowek-sekcji">
-    <h2>Historia</h2>
-    <small id="podsumowanie-historii"></small>
-  </div>
-  <div id="lista"></div>
-</section>
-
-<div class="narzedzia">
-  <button class="glowny" id="raport-otworz">Raport dla lekarza</button>
-  <button class="glowny" data-akcja="wyslij-kopie">Wyślij kopię</button>
-  <button id="eksport">Eksportuj CSV</button>
-  <button id="import">Wczytaj CSV</button>
-</div>
-<input type="file" id="plik" accept=".csv,text/csv" hidden>
-
-<footer>
-  Dane zapisują się tylko w pamięci tej przeglądarki. Rób kopię przyciskiem „Wyślij kopię”.<br>
-  Aplikacja pomaga notować pomiary — nie służy do oceny stanu zdrowia.
-</footer>
-
-<section id="raport">
-  <div class="raport-pasek">
+<main class="strona" id="strona-raport" hidden>
+  <section class="karta raport-pasek">
     <div class="rzad">
       <div>
         <label for="raport-od">Od</label>
@@ -258,17 +259,47 @@ body.raport-otwarty #raport{display:block}
         <input type="date" id="raport-do">
       </div>
     </div>
-    <div>
-      <label for="raport-pacjent">Imię i nazwisko (opcjonalnie)</label>
-      <input type="text" id="raport-pacjent" autocomplete="name">
-    </div>
-    <div class="raport-przyciski">
-      <button type="button" id="raport-zamknij">Wróć</button>
-      <button type="button" class="glowny" id="raport-drukuj">Drukuj / zapisz PDF</button>
-    </div>
-  </div>
+    <label for="raport-pacjent">Imię i nazwisko (opcjonalnie)</label>
+    <input type="text" id="raport-pacjent" autocomplete="name">
+    <button type="button" class="zapisz" id="raport-drukuj" style="margin-top:12px">Drukuj / zapisz PDF</button>
+  </section>
   <div id="raport-tresc"></div>
-</section>
+</main>
+
+<main class="strona" id="strona-kopia" hidden>
+  <section class="karta">
+    <div class="naglowek-sekcji">
+      <h2>Kopia zapasowa</h2>
+    </div>
+    <p class="opis" id="stan-kopii"></p>
+    <div class="narzedzia">
+      <button class="glowny" data-akcja="wyslij-kopie">Wyślij kopię</button>
+      <button id="eksport">Eksportuj CSV</button>
+      <button id="import">Wczytaj CSV</button>
+    </div>
+    <input type="file" id="plik" accept=".csv,text/csv" hidden>
+  </section>
+
+  <footer>
+    Dane zapisują się tylko w pamięci tej przeglądarki. Rób kopię przyciskiem „Wyślij kopię”.<br>
+    Aplikacja pomaga notować pomiary — nie służy do oceny stanu zdrowia.
+  </footer>
+</main>
+
+<nav class="nawigacja" id="nawigacja" aria-label="Sekcje aplikacji">
+  <button type="button" data-strona="pomiar" aria-current="page">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Pomiar
+  </button>
+  <button type="button" data-strona="historia">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>Historia
+  </button>
+  <button type="button" data-strona="raport">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5"/></svg>Raport
+  </button>
+  <button type="button" data-strona="kopia">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 14v5h14v-5"/></svg>Kopia
+  </button>
+</nav>
 
 <script>
 const KLUCZ = 'pomiary-cisnienia-v1';
@@ -588,7 +619,34 @@ function rysujPrzypomnienie(){
   }
   el.hidden = !tekst;
   if(tekst) el.innerHTML = '<span>'+tekst+'</span><button type="button">Wyślij kopię</button>';
+
+  const ile = ostatnia ? dniOd(ostatnia) : null;
+  document.getElementById('stan-kopii').textContent = ostatnia
+    ? 'Ostatnia kopia: '+(ile===0 ? 'dzisiaj' : ile===1 ? 'wczoraj' : ile+' dni temu')+' ('+ostatnia.slice(8,10)+'.'+ostatnia.slice(5,7)+').'
+    : 'Na tym telefonie nie zrobiono jeszcze kopii. „Wyślij kopię” otwiera menu Udostępnij — wybierz np. Dysk Google.';
 }
+
+/* ---------- strony (dolna nawigacja) ---------- */
+// „Pomiar” to strona startowa; z pozostałych systemowe „wstecz” wraca do niej, zamiast zamykać aplikację.
+let strona = 'pomiar';
+function pokazStrone(nowa){
+  strona = nowa;
+  document.querySelectorAll('.strona').forEach(el=>{ el.hidden = el.id!=='strona-'+nowa; });
+  document.querySelectorAll('#nawigacja button').forEach(b=>{
+    if(b.dataset.strona===nowa) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+  if(nowa==='raport') przygotujRaport();
+  window.scrollTo(0,0);
+}
+document.getElementById('nawigacja').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-strona]');
+  if(!b || b.dataset.strona===strona) return;
+  const nowa = b.dataset.strona;
+  if(nowa==='pomiar'){ history.back(); return; }   // pod każdą inną stroną w historii leży „Pomiar”
+  if(strona==='pomiar') history.pushState({strona:nowa}, ''); else history.replaceState({strona:nowa}, '');
+  pokazStrone(nowa);
+});
+window.addEventListener('popstate', ()=>pokazStrone((history.state && history.state.strona) || 'pomiar'));
 
 // Pola w cudzysłowach mogą zawierać średniki, nowe linie i podwojone cudzysłowy ("").
 function parsujCSV(tekst){
@@ -658,20 +716,16 @@ function wartosc(p){ return p.skurczowe+'/'+p.rozkurczowe; }
 function sredniaTekst(s){ return s.ile ? s.skurczowe+'/'+s.rozkurczowe : '—'; }
 function ileDni(n){ return n + (n===1 ? ' dzień' : ' dni'); }
 
-function otworzRaport(){
-  const dzis = isoDaty(new Date());
-  document.getElementById('raport-od').value = dodajDni(dzis, -29);
-  document.getElementById('raport-do').value = dzis;
-  try{ document.getElementById('raport-pacjent').value = localStorage.getItem(KLUCZ_PACJENTA) || ''; }catch(e){}
-  document.body.classList.add('raport-otwarty');
-  history.pushState({raport:true}, '');   // systemowe „wstecz” zamyka raport zamiast aplikacji
-  window.scrollTo(0,0);
+// Przy pierwszym wejściu ustawia domyślne 30 dni; potem zostawia wybrany zakres.
+function przygotujRaport(){
+  if(!document.getElementById('raport-od').value){
+    const dzis = isoDaty(new Date());
+    document.getElementById('raport-od').value = dodajDni(dzis, -29);
+    document.getElementById('raport-do').value = dzis;
+    try{ document.getElementById('raport-pacjent').value = localStorage.getItem(KLUCZ_PACJENTA) || ''; }catch(e){}
+  }
   rysujRaport();
 }
-document.getElementById('raport-otworz').addEventListener('click', otworzRaport);
-document.getElementById('raport-zamknij').addEventListener('click', ()=>history.back());
-window.addEventListener('popstate', ()=>
-  document.body.classList.toggle('raport-otwarty', !!(history.state && history.state.raport)));
 document.getElementById('raport-drukuj').addEventListener('click', ()=>window.print());
 ['raport-od','raport-do'].forEach(id=>document.getElementById(id).addEventListener('change', rysujRaport));
 document.getElementById('raport-pacjent').addEventListener('input', e=>{
@@ -837,7 +891,7 @@ function raportDodatkowe(dodatkowe){
 }
 
 /* ---------- start ---------- */
-if(history.state && history.state.raport) history.replaceState(null, '');
+if(history.state) history.replaceState(null, '');   // po przeładowaniu zawsze start od „Pomiaru”
 wczytaj(); terazDoPol(); odswiez();
 if('serviceWorker' in navigator){
   // Strona startuje z cache; nowa wersja pobiera się w tle i przejmuje stronę chwilę później.
@@ -845,7 +899,7 @@ if('serviceWorker' in navigator){
   const byloSterowane = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{
     const wTrakcieWpisu = ['skurczowe','rozkurczowe','tetno','notatka'].some(id=>document.getElementById(id).value);
-    if(byloSterowane && !wTrakcieWpisu && !document.body.classList.contains('raport-otwarty')) location.reload();
+    if(byloSterowane && !wTrakcieWpisu && strona!=='raport') location.reload();
   });
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }

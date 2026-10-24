@@ -52,6 +52,11 @@ rozkurczowe + tetno` (dwa różne pomiary w tej samej minucie są zachowywane).
 
 ## Kluczowe elementy logiki w `index.html`
 
+- Układ: cztery strony (`<main class="strona">`) przełączane dolnym paskiem `#nawigacja` —
+  **Pomiar** (stan, „Dziś”, przypomnienie o kopii, formularz; strona startowa), **Historia**
+  (wykres, lista), **Raport**, **Kopia**. `pokazStrone()` przełącza; z innych stron systemowe
+  „wstecz” wraca do Pomiaru (`history.pushState`/`popstate`).
+
 - `KATEGORIE` + `kategoria(s, r)` — klasyfikacja wg wyższej z dwóch wartości, od „niskie"
   po „nadciśnienie 3°"; każda kategoria ma kolor używany w kafelku stanu i na paskach
   przy wpisach historii.

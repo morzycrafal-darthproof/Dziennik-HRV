@@ -23,6 +23,7 @@ Celowo bez frameworków i bez kroku budowania — jeden plik HTML z wbudowanym C
 | `index.html` | całość: struktura, style, logika |
 | `manifest.json` | manifest PWA (`display: standalone`, motyw `#123a33`) |
 | `sw.js` | service worker, cache `cisnienie-v1`, strategia cache-first |
+| `testy.html` | testy logiki (parser CSV, średnie, kategorie, daty) — otworzyć przez http, nie `file://`; ładuje `index.html` w ukrytej ramce |
 | `icon-192.png`, `icon-512.png` | ikona: linia EKG na ciemnej zieleni, półprzezroczyste serce w tle |
 
 Wszystkie pliki leżą w **korzeniu repo** — Pages serwuje branch `main`, folder `/ (root)`.
@@ -73,6 +74,8 @@ rozkurczowe + tetno` (dwa różne pomiary w tej samej minucie są zachowywane).
 - `rysujRaport()` — raport dla lekarza: widok A4 do druku / zapisu jako PDF (`window.print()`),
   zakres dat, podsumowanie, średnie tygodniowe, wykres z osią czasu, tabela dzienna,
   pomiary dodatkowe z powodem. Bez kategorii i kolorów ocen.
+- `edytuj(id)` — stuknięcie wpisu w Historii wczytuje go do formularza na stronie Pomiar;
+  zapis podmienia wpis o tym samym `id` (`edytowany`), „Anuluj edycję” wraca do nowego wpisu.
 - Walidacja przed zapisem: zakresy wartości oraz sprawdzenie, czy dolna wartość nie jest
   większa od górnej (częsta pomyłka przy zamianie pól).
 

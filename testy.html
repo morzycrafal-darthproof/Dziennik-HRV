@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Testy — Dziennik ciśnienia</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:20px;line-height:1.5}
+.ok{color:#2f6f62}.zle{color:#9c2f3c;font-weight:600}
+iframe{display:none}
+</style>
+</head>
+<body>
+<h1>Testy logiki</h1>
+<p id="podsumowanie">Uruchamianie…</p>
+<ul id="wyniki"></ul>
+<!-- Funkcje aplikacji z index.html; ramka nie zapisuje niczego do localStorage, testy tylko czytają funkcje. -->
+<iframe id="aplikacja" src="index.html"></iframe>
+<script>
+document.getElementById('aplikacja').addEventListener('load', e=>{
+  const A = e.target.contentWindow;
+  const wyniki = [];
+  const test = (nazwa, otrzymane, oczekiwane) => {
+    const ok = JSON.stringify(otrzymane) === JSON.stringify(oczekiwane);
+    wyniki.push(ok);
+    document.getElementById('wyniki').insertAdjacentHTML('beforeend',
+      '<li class="'+(ok?'ok':'zle')+'">'+(ok?'✓ ':'✗ ')+nazwa+
+      (ok ? '' : ' — otrzymano '+JSON.stringify(otrzymane)+', oczekiwano '+JSON.stringify(oczekiwane))+'</li>');
+  };
+  const p = (pora, s, r, tetno) => ({pora, skurczowe:s, rozkurczowe:r, tetno});
+
+  // parser CSV
+  test('CSV: średnik, nowa linia i "" w polu w cudzysłowie',
+    A.parsujCSV('"a";"b"\n"x;y";"linia1\nlinia2 z ""cytatem"""\n'),
+    [['a','b'],['x;y','linia1\nlinia2 z "cytatem"']]);
+  test('CSV: końce linii CRLF i brak nowej linii na końcu',
+    A.parsujCSV('"a";"b"\r\n"1";"2"'), [['a','b'],['1','2']]);
+  test('CSV: puste wiersze są pomijane', A.parsujCSV('"a"\n\n\n"b"\n'), [['a'],['b']]);
+
+  // średnie
+  test('Średnia pomija pomiary dodatkowe',
+    A.srednie([p('rano',130,80,60), p('wieczór',120,76,null), p('dodatkowy',170,100,90)]),
+    {skurczowe:125, rozkurczowe:78, tetno:60, ile:2});
+  test('Średnia bez pomiarów to „—”', A.srednie([]), {skurczowe:'—', rozkurczowe:'—', tetno:'—', ile:0});
+
+  // kategorie (informacyjne)
+  test('Kategoria 120/80 → prawidłowe', A.kategoria(120,80).nazwa, 'prawidłowe');
+  test('Kategoria wg wyższej wartości: 118/85 → wysokie prawidłowe', A.kategoria(118,85).nazwa, 'wysokie prawidłowe');
+  test('Kategoria 85/55 → niskie', A.kategoria(85,55).nazwa, 'niskie');
+
+  // daty i odmiana
+  test('Dni w okresie obejmują zmianę czasu (25.10)', A.dniWOkresie('2026-10-01','2026-10-31'), 31);
+  test('Dodawanie dni przez koniec miesiąca', A.dodajDni('2026-10-30', 3), '2026-11-02');
+  test('Odmiana: 1, 2, 5, 12, 22 pomiary',
+    [1,2,5,12,22].map(A.ilePomiarow), ['1 pomiar','2 pomiary','5 pomiarów','12 pomiarów','22 pomiary']);
+
+  const zle = wyniki.filter(x=>!x).length;
+  const podsumowanie = document.getElementById('podsumowanie');
+  podsumowanie.textContent = zle ? 'Błędy: '+zle+' z '+wyniki.length : 'Wszystkie testy przeszły ('+wyniki.length+').';
+  podsumowanie.className = zle ? 'zle' : 'ok';
+});
+</script>
+</body>
+</html>

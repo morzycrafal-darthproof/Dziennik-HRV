@@ -77,6 +77,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   background:var(--zielen-ciemna);color:#fff;font:inherit;font-weight:600;cursor:pointer
 }
 .zapisz:active{transform:translateY(1px)}
+.anuluj{width:100%;margin-top:6px;padding:10px;border:none;background:none;font:inherit;font-size:.9rem;color:var(--przygaszony);cursor:pointer}
 .blad{color:var(--czerwien);font-size:.85rem;margin-top:6px;min-height:1.2em}
 
 /* --- wykres --- */
@@ -89,7 +90,7 @@ svg{width:100%;height:auto;display:block}
 
 /* --- lista --- */
 .dzien{font-size:.8rem;color:var(--przygaszony);margin:18px 0 8px;padding-left:2px}
-.wpis{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linia)}
+.wpis{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linia);cursor:pointer}
 .wpis:last-child{border-bottom:none}
 .pasek{width:4px;align-self:stretch;border-radius:2px;flex:none}
 .wpis .wartosc{font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;min-width:104px}
@@ -222,6 +223,7 @@ footer{font-size:.76rem;color:var(--przygaszony);text-align:center;padding:6px 1
 
     <div class="blad" id="blad"></div>
     <button class="zapisz" id="zapisz">Zapisz pomiar</button>
+    <button type="button" class="anuluj" id="anuluj" hidden>Anuluj edycję</button>
   </section>
 </main>
 
@@ -473,7 +475,7 @@ function rysujListe(){
       ostatniDzien = p.data;
     }
     const k = kategoria(p.skurczowe,p.rozkurczowe);
-    html += '<div class="wpis">'+
+    html += '<div class="wpis" data-edytuj="'+p.id+'">'+
       '<span class="pasek" style="background:'+k.kolor+'"></span>'+
       '<span class="wartosc">'+p.skurczowe+'/'+p.rozkurczowe+'</span>'+
       '<span class="meta">'+p.godzina+' · '+p.pora+(p.tetno?' · '+p.tetno+' ud/min':'')+
@@ -528,24 +530,52 @@ document.getElementById('zapisz').addEventListener('click', ()=>{
   if(r>=s){ blad.textContent='Dolna wartość musi być mniejsza od górnej — sprawdź, czy pola się nie zamieniły.'; return; }
   blad.textContent='';
 
-  pomiary.push({
-    id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+  const pomiar = {
     data, godzina, skurczowe:s, rozkurczowe:r,
     tetno: (t>=20 && t<=250) ? t : null,
     pora,
     notatka: document.getElementById('notatka').value.trim()
-  });
+  };
+  const i = pomiary.findIndex(x=>x.id===edytowany);
+  if(i>=0) pomiary[i] = {id: edytowany, ...pomiar};
+  else pomiary.push({id: Date.now()+'-'+Math.random().toString(36).slice(2,7), ...pomiar});
   pomiary.sort((a,b)=> (b.data+b.godzina).localeCompare(a.data+a.godzina));
   zapisz(); odswiez();
 
-  ['skurczowe','rozkurczowe','tetno','notatka'].forEach(i=>document.getElementById(i).value='');
-  terazDoPol();
+  zakonczEdycje();
   document.getElementById('skurczowe').focus();
 });
 
+/* ---------- edycja wpisu (stuknięcie w historii) ---------- */
+let edytowany = null;   // id pomiaru poprawianego w formularzu
+function edytuj(id){
+  const p = pomiary.find(x=>x.id===id);
+  edytowany = id;
+  ['data','godzina','skurczowe','rozkurczowe','notatka'].forEach(pole=>document.getElementById(pole).value = p[pole]);
+  document.getElementById('tetno').value = p.tetno || '';
+  ustawPore(p.pora);
+  document.getElementById('zapisz').textContent = 'Zapisz zmiany';
+  document.getElementById('anuluj').hidden = false;
+  history.back();   // z Historii wraca do Pomiaru, gdzie jest formularz
+}
+function zakonczEdycje(){
+  edytowany = null;
+  document.getElementById('zapisz').textContent = 'Zapisz pomiar';
+  document.getElementById('anuluj').hidden = true;
+  document.getElementById('blad').textContent = '';
+  ['skurczowe','rozkurczowe','tetno','notatka'].forEach(i=>document.getElementById(i).value='');
+  terazDoPol();
+}
+document.getElementById('anuluj').addEventListener('click', zakonczEdycje);
+
 document.getElementById('lista').addEventListener('click', e=>{
-  const id = e.target.dataset.id;
-  if(!id) return;
+  const usun = e.target.closest('.usun');
+  if(!usun){
+    const wpis = e.target.closest('[data-edytuj]');
+    if(wpis) edytuj(wpis.dataset.edytuj);
+    return;
+  }
+  const id = usun.dataset.id;
   const p = pomiary.find(x=>x.id===id);
   if(confirm('Usunąć pomiar '+p.skurczowe+'/'+p.rozkurczowe+' z '+p.data+' '+p.godzina+'?')){
     pomiary = pomiary.filter(x=>x.id!==id);

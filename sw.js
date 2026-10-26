@@ -1,4 +1,4 @@
-const CACHE = 'cisnienie-v10';
+const CACHE = 'cisnienie-v11';
 const PLIKI = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 // cache: 'reload' omija pamięć HTTP przeglądarki (GitHub Pages: max-age=600),

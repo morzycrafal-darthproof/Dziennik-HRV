@@ -26,58 +26,58 @@ body{
   color:var(--atrament);
   font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   font-size:16px;line-height:1.45;
-  padding:0 14px calc(96px + env(safe-area-inset-bottom));   /* miejsce na dolną nawigację */
+  padding:0 14px calc(80px + env(safe-area-inset-bottom));   /* miejsce na dolną nawigację */
   max-width:620px;margin:0 auto;
 }
 h1{font-size:1.05rem;font-weight:600;letter-spacing:.01em;margin:0}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:18px 2px 12px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 2px 8px}
 header span{font-size:.82rem;color:var(--przygaszony)}
-.karta{background:var(--karta);border-radius:var(--r);padding:16px;margin-bottom:14px;border:1px solid var(--linia)}
+.karta{background:var(--karta);border-radius:var(--r);padding:16px;margin-bottom:10px;border:1px solid var(--linia)}
 
 /* --- stan bieżący --- */
-.stan{background:var(--zielen-ciemna);color:#eef4f2;border:none;padding:20px 18px}
+.stan{background:var(--zielen-ciemna);color:#eef4f2;border:none;padding:16px 18px}
 .stan .odczyt{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
-.stan .liczby{font-size:3rem;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stan .liczby{font-size:2.5rem;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .stan .jedn{font-size:.85rem;opacity:.7;padding-bottom:.4rem}
 .stan .kiedy{font-size:.85rem;opacity:.75;margin-top:8px}
-.plakietka{display:inline-block;margin-top:12px;padding:5px 11px;border-radius:999px;font-size:.82rem;font-weight:600;color:#fff}
-.dzis-tytul{font-size:.78rem;opacity:.7;margin-top:16px;margin-bottom:6px}
+.plakietka{display:inline-block;margin-top:8px;padding:5px 11px;border-radius:999px;font-size:.82rem;font-weight:600;color:#fff}
+.dzis-tytul{font-size:.78rem;opacity:.7;margin-top:12px;margin-bottom:6px}
 .dzis{display:flex;gap:8px}
 .dzis>*{
   flex:1;min-width:0;text-align:left;font:inherit;font-size:.78rem;color:inherit;
-  padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.08);
+  padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);
   border:none;border-left:4px solid transparent
 }
 .dzis b{display:block;font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0 1px}
 .dzis small{display:block;font-size:.72rem;opacity:.7}
 .dzis .brak{background:none;border:1px dashed rgba(255,255,255,.35);cursor:pointer;opacity:.85}
 .dzis .brak b{font-weight:500;opacity:.8}
-.srednie{display:flex;gap:22px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);flex-wrap:wrap}
+.srednie{display:flex;gap:22px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18);flex-wrap:wrap}
 .srednie div{font-size:.82rem;opacity:.8}
 .srednie b{display:block;font-size:1.25rem;font-weight:600;opacity:1;font-variant-numeric:tabular-nums;margin-top:2px}
 
 /* --- formularz --- */
 label{display:block;font-size:.8rem;color:var(--przygaszony);margin-bottom:5px}
-.rzad{display:flex;gap:10px;margin-bottom:12px}
+.rzad{display:flex;gap:10px;margin-bottom:10px}
 .rzad>div{flex:1;min-width:0}
 input,select,textarea{
   width:100%;font:inherit;color:var(--atrament);background:#f6f8f7;
-  border:1px solid var(--linia);border-radius:10px;padding:11px 12px;
+  border:1px solid var(--linia);border-radius:10px;padding:9px 12px;
 }
 input:focus,select:focus,textarea:focus{outline:2px solid var(--zielen);outline-offset:1px;background:#fff}
 input[type=number]{font-variant-numeric:tabular-nums}
 .pory{display:flex;gap:8px}
 .pory button{
-  flex:1;padding:11px 4px;border-radius:10px;border:1px solid var(--linia);
+  flex:1;padding:9px 4px;border-radius:10px;border:1px solid var(--linia);
   background:#f6f8f7;font:inherit;font-size:.9rem;color:var(--przygaszony);cursor:pointer
 }
 .pory button[aria-pressed=true]{background:var(--zielen);border-color:var(--zielen);color:#fff;font-weight:600}
 .zapisz{
-  width:100%;margin-top:4px;padding:14px;border:none;border-radius:10px;
+  width:100%;margin-top:4px;padding:12px;border:none;border-radius:10px;
   background:var(--zielen-ciemna);color:#fff;font:inherit;font-weight:600;cursor:pointer
 }
 .zapisz:active{transform:translateY(1px)}
-.blad{color:var(--czerwien);font-size:.85rem;margin-top:10px;min-height:1.2em}
+.blad{color:var(--czerwien);font-size:.85rem;margin-top:6px;min-height:1.2em}
 
 /* --- wykres --- */
 .naglowek-sekcji{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
